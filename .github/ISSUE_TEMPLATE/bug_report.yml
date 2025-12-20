@@ -1,0 +1,56 @@
+name: Bug Report
+description: File a bug report.
+title: '[Bug]: '
+labels: ['bug', 'needs-triage']
+assignees: []
+type: bug
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 'What happened? (NOTE: Do not include sensitive information)'
+      placeholder: Tell us what you see
+      value: 'A bug happened!'
+    validations:
+      required: true
+  - type: markdown
+    id: steps-to-reproduce
+    attributes:
+      label: How can we reproduce the issue?
+      value: |
+        1. Do this
+        2. Then do that
+        3. Finally, observe the issue
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What did you expect to happen?
+      placeholder: Tell us what you expected to see
+      value: Should have done this!
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: What actually happened?
+      placeholder: Tell us what actually happened
+      value: But instead, this happened!
+    validations:
+      required: true
+  - type: textarea
+    id: relevant-logs-output
+    attributes:
+      label: Are there any relevant logs or console output?
+      placeholder: Paste any relevant logs or console output here
+  - type: textarea
+    id: your-environment
+    attributes:
+      label: What is your environment?
+      placeholder: Provide details about your environment
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else we should know?
+      placeholder: Add any other context about the problem here

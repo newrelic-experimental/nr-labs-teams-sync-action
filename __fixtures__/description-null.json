@@ -1,0 +1,15 @@
+{
+  "description": null,
+  "aliases": ["epd"],
+  "members": ["joe@example.com"],
+  "links": [
+    {
+      "type": "GITHUB",
+      "title": "GitHub Repository",
+      "content": "https://github.com/example/repo"
+    }
+  ],
+  "tags": {
+    "foo": ["bar"]
+  }
+}

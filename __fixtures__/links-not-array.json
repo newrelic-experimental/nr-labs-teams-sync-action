@@ -1,0 +1,16 @@
+{
+  "description": "Engineering team responsible for product development",
+  "aliases": ["epd"],
+  "members": ["joe@example.com"],
+  "contacts": [
+    {
+      "type": "EMAIL",
+      "title": "Test email",
+      "content": "test@example.com"
+    }
+  ],
+  "links": 42,
+  "tags": {
+    "foo": ["bar"]
+  }
+}

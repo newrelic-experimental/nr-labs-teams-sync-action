@@ -1,0 +1,33 @@
+name: New Relic Labs Teams Sync Action
+description:
+  Sync team definitions stored in files in a GitHub repository with New Relic
+  Teams
+author: sdewitt@newrelic.com
+
+branding:
+  icon: users
+  color: green
+
+inputs:
+  org-id:
+    description: Your New Relic Organization ID
+    required: true
+  api-key:
+    description: Your New Relic User key
+    required: true
+  region:
+    description: Your New Relic data center (US, EU)
+    required: false
+  files-added:
+    description: Files that have been created, comma-separated
+    required: false
+  files-modified:
+    description: Files that have been modified, comma-separated
+    required: false
+  files-deleted:
+    description: Files that have been deleted, comma-separated
+    required: false
+
+runs:
+  using: node20
+  main: dist/index.js

@@ -1,0 +1,23 @@
+{
+  "description": "Go-to-Market team responsible for sales and marketing",
+  "aliases": ["gtm"],
+  "members": ["pat@example.com", "skyler@example.com"],
+  "contacts": [
+    {
+      "type": "EMAIL",
+      "title": "Test email",
+      "content": "test2@example.com"
+    }
+  ],
+  "links": [
+    {
+      "type": "GITHUB",
+      "title": "GitHub Repository",
+      "content": "https://github.com/example/repo2"
+    }
+  ],
+  "tags": {
+    "fizz": ["fazz"],
+    "bizz": ["bazz"]
+  }
+}

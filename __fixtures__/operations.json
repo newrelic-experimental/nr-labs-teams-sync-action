@@ -1,0 +1,22 @@
+{
+  "description": "Operations team responsible for company operations",
+  "aliases": ["ops"],
+  "members": ["jess@example.com"],
+  "contacts": [
+    {
+      "type": "EMAIL",
+      "title": "Test email",
+      "content": "test3@example.com"
+    }
+  ],
+  "links": [
+    {
+      "type": "GITHUB",
+      "title": "GitHub Repository",
+      "content": "https://github.com/example/repo3"
+    }
+  ],
+  "tags": {
+    "bloop": ["blop"]
+  }
+}

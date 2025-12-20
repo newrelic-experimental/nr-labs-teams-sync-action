@@ -1,0 +1,15 @@
+{
+  "description": "Engineering team responsible for product development",
+  "aliases": 42,
+  "members": ["joe@example.com"],
+  "links": [
+    {
+      "type": "GITHUB",
+      "title": "GitHub Repository",
+      "content": "https://github.com/example/repo"
+    }
+  ],
+  "tags": {
+    "foo": ["bar"]
+  }
+}
