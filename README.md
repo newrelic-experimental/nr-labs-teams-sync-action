@@ -63,8 +63,8 @@ on a push to the `main` branch.
            id: sync-teams
            uses: newrelic-experimental/nr-labs-teams-sync-action@v1
            with:
-             org-id: {{ secrets.NEW_RELIC_ORG_ID }}
-             api-key: {{ secrets.NEW_RELIC_API_KEY }}
+             org-id: '{{ secrets.NEW_RELIC_ORG_ID }}'
+             api-key: '{{ secrets.NEW_RELIC_API_KEY }}'
              region: US
              files-added: steps.changed-files.outputs.added_files
              files-modified: steps.changed-files.outputs.modified_files
