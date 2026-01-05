@@ -63,12 +63,12 @@ on a push to the `main` branch.
            id: sync-teams
            uses: newrelic-experimental/nr-labs-teams-sync-action@v1
            with:
-             org-id: '{{ secrets.NEW_RELIC_ORG_ID }}'
-             api-key: '{{ secrets.NEW_RELIC_API_KEY }}'
+             org-id: ${{ secrets.NEW_RELIC_ORG_ID }}
+             api-key: ${{ secrets.NEW_RELIC_API_KEY }}
              region: US
-             files-added: steps.changed-files.outputs.added_files
-             files-modified: steps.changed-files.outputs.modified_files
-             files-deleted: steps.changed-files.outputs.deleted_files
+             files-added: ${{ steps.changed-files.outputs.added_files }}
+             files-modified: ${{ steps.changed-files.outputs.modified_files }}
+             files-deleted: ${{ steps.changed-files.outputs.deleted_files }}
    ```
 
    **NOTE:** This action depends on the use of [tj-actions/changed-files](https://github.com/tj-actions/changed-files)
@@ -96,7 +96,7 @@ on a push to the `main` branch.
 9. Commit the new team file to you repository and push your changes to GitHub.
 
 That's it! When the new team file is pushed to the `main` branch, the new
-workflow will autmoatically create the team in New Relic teams using the name of
+workflow will automatically create the team in New Relic teams using the name of
 the file as the team name and using the contents of the file to define the
 members of the team and the other team details.
 
