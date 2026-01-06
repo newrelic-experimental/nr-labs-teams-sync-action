@@ -1,19 +1,19 @@
 {
   "description": "Engineering team responsible for product development",
   "aliases": ["epd"],
-  "members": ["pat@example.com", "jess@example.com"],
+  "members": ["fake-user-1@fake-domain-123.com", "fake-user-2@fake-domain-123.com"],
   "contacts": [
     {
       "type": "EMAIL",
       "title": "Test email",
-      "content": "test@example.com"
+      "content": "fake-user-3@fake-domain-123.com"
     }
   ],
   "links": [
     {
       "type": "GITHUB",
       "title": "GitHub Repository",
-      "content": "https://github.com/example/repo"
+      "content": "https://github.com/fake-organization-123/fake-repo-123"
     }
   ],
   "tags": {
