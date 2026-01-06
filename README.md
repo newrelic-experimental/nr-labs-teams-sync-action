@@ -25,6 +25,7 @@ configuration-as-code solution for managing [New Relic Teams](https://docs.newre
 
 - [Getting Started](#getting-started)
 - [Configuration](./docs/configuration.md)
+- [Team Definition File Format](./docs/team-definition-file-format.md)
 - [Additional Information](./docs/additional-information.md)
 - [Contribute to the Integration](./docs/contribute.md)
 
