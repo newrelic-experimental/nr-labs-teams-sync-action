@@ -1,7 +1,13 @@
 {
   "description": "Go-to-Market team responsible for sales and marketing",
   "aliases": ["gtm"],
-  "members": ["pat@example.com", "skyler@example.com"],
+  "members": [
+    "pat@example.com",
+    {
+      "authenticationDomainId": "fake-authentication-domain-id-2",
+      "members": ["skyler@example.com"]
+    }
+  ],
   "contacts": [
     {
       "type": "EMAIL",

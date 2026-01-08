@@ -13,7 +13,7 @@
     "local-action": "npx @github/local-action . src/main.ts .env",
     "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
-    "all": "npm run format:check &&npm run lint && npm run test && npm run coverage && npm run package"
+    "all": "npm run format:check && npm run lint && npm run test && npm run coverage && npm run package"
   },
   "repository": {
     "type": "git",

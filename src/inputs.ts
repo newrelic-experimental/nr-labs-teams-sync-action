@@ -3,6 +3,7 @@ import { Region, toRegion } from './nerdgraph/nerdgraph.js'
 
 export type Inputs = {
   orgId: string
+  authenticationDomainId?: string
   apiKey: string
   region: Region
   filesAdded: string[]
@@ -12,6 +13,7 @@ export type Inputs = {
 
 export function getInputs(): Inputs {
   const orgId = getInput('org-id', { required: true })
+  const authenticationDomainId = getInput('authentication-domain-id')
   const apiKey = getInput('api-key', { required: true })
   const region = getInput('region')
   const filesAdded = getInput('files-added')
@@ -20,6 +22,7 @@ export function getInputs(): Inputs {
 
   return {
     orgId,
+    authenticationDomainId: authenticationDomainId || undefined,
     apiKey,
     region: toRegion(region),
     filesAdded: !filesAdded

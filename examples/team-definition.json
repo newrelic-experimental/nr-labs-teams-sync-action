@@ -3,7 +3,10 @@
   "aliases": ["epd"],
   "members": [
     "fake-user-1@fake-domain-123.com",
-    "fake-user-2@fake-domain-123.com"
+    {
+      "authenticationDomainId": "fake-authentication-domain-123",
+      "members": ["fake-user-2@fake-domain-123.com"]
+    }
   ],
   "contacts": [
     {

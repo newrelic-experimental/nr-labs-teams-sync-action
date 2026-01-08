@@ -37,6 +37,11 @@ export type UpdateMembershipResult = {
   usersRemoved: string[]
 }
 
+export type TeamMembersInput = {
+  authenticationDomainId: string
+  members: string[]
+}
+
 function unmarshalTags(obj: unknown): { key: string; values: string[] }[] {
   if (!Array.isArray(obj)) {
     throw new NerdgraphError('Invalid tags')
@@ -175,11 +180,11 @@ export interface TeamsClient {
   removeMembers(teamEntity: TeamEntity, userGuids: string[]): Promise<string[]>
   updateMembership(
     teamEntity: TeamEntity,
-    members: string[]
+    members: TeamMembersInput[]
   ): Promise<UpdateMembershipResult>
   createTeam(
     name: string,
-    members: string[],
+    members: TeamMembersInput[],
     description: string,
     aliases: string[],
     tags: Record<string, string[]>,
@@ -187,7 +192,7 @@ export interface TeamsClient {
   ): Promise<TeamEntity>
   updateTeam(
     name: string,
-    members: string[],
+    members: TeamMembersInput[],
     description: string,
     aliases: string[],
     tags: Record<string, string[]>,
@@ -461,27 +466,32 @@ class TeamsClientImpl implements TeamsClient {
 
   async updateMembership(
     teamEntity: TeamEntity,
-    members: string[]
+    members: TeamMembersInput[]
   ): Promise<UpdateMembershipResult> {
     const currMembers = await this.getTeamMembers(teamEntity)
     const usersToAdd: string[] = []
     const usersToRemove: string[] = currMembers.map((member) => member.guid)
 
-    for (const email of members) {
-      const user = await this.usersClient.getUserByEmail(email)
+    for (const teamMembersInput of members) {
+      for (const email of teamMembersInput.members) {
+        const user = await this.usersClient.getUserByEmail(
+          teamMembersInput.authenticationDomainId,
+          email
+        )
 
-      if (user === null) {
-        core.warning(`User not found: ${email}`)
-        continue
-      }
+        if (user === null) {
+          core.warning(`User not found: ${email}`)
+          continue
+        }
 
-      const { guid } = user
-      const index = usersToRemove.indexOf(guid)
+        const { guid } = user
+        const index = usersToRemove.indexOf(guid)
 
-      if (index === -1) {
-        usersToAdd.push(guid)
-      } else {
-        usersToRemove.splice(index, 1)
+        if (index === -1) {
+          usersToAdd.push(guid)
+        } else {
+          usersToRemove.splice(index, 1)
+        }
       }
     }
 
@@ -498,7 +508,7 @@ class TeamsClientImpl implements TeamsClient {
 
   async createTeam(
     name: string,
-    members: string[],
+    members: TeamMembersInput[],
     description: string,
     aliases: string[],
     tags: Record<string, string[]>,
@@ -579,7 +589,7 @@ class TeamsClientImpl implements TeamsClient {
 
   async updateTeam(
     name: string,
-    members: string[],
+    members: TeamMembersInput[],
     description: string,
     aliases: string[],
     tags: Record<string, string[]>,

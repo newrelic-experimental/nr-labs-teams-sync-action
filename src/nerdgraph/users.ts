@@ -7,8 +7,14 @@ export type UserEntity = {
   name: string
 }
 
-function isUserSearchResult(obj: unknown): obj is { userId: string } {
-  return isObjectAsIndexableObject(obj) && isString(obj.userId)
+function isUserSearchResult(
+  obj: unknown
+): obj is { authenticationDomainId: string; id: string } {
+  return (
+    isObjectAsIndexableObject(obj) &&
+    isString(obj.authenticationDomainId) &&
+    isString(obj.id)
+  )
 }
 
 function isUserEntity(obj: unknown): obj is UserEntity {
@@ -18,9 +24,15 @@ function isUserEntity(obj: unknown): obj is UserEntity {
 }
 
 export interface UsersClient {
-  getUserIdByEmail(email: string): Promise<string | null>
+  getUserIdByEmail(
+    authenticationDomainId: string,
+    email: string
+  ): Promise<string | null>
   getUserById(userId: number | string): Promise<UserEntity | null>
-  getUserByEmail(email: string): Promise<UserEntity | null>
+  getUserByEmail(
+    authenticationDomainId: string,
+    email: string
+  ): Promise<UserEntity | null>
 }
 
 export function newUsersClient(
@@ -42,23 +54,28 @@ class UsersClientImpl implements UsersClient {
     this.region = region
   }
 
-  async getUserIdByEmail(email: string): Promise<string | null> {
+  async getUserIdByEmail(
+    authenticationDomainId: string,
+    email: string
+  ): Promise<string | null> {
     const results = await this.client.query(
       this.apiKey,
       `
       {
-        actor {
-          users {
-            userSearch(query: {scope: {email: $email}}) {
-              users {
-                userId
-              }
+        customerAdministration {
+          users(filter: {authenticationDomainId: {eq: $authenticationDomainId}, email: {eq: $email}}) {
+            items {
+              authenticationDomainId
+              id
             }
           }
         }
       }
       `,
-      { email: ['String', email] },
+      {
+        authenticationDomainId: ['ID', authenticationDomainId],
+        email: ['String', email]
+      },
       false,
       null,
       this.region
@@ -70,29 +87,29 @@ class UsersClientImpl implements UsersClient {
       )
     }
 
-    const users = findByPath(results[0], 'actor.users.userSearch.users')
+    const items = findByPath(results[0], 'customerAdministration.users.items')
 
-    if (users === null) {
+    if (items === null) {
       return null
     }
 
-    if (!Array.isArray(users)) {
+    if (!Array.isArray(items)) {
       throw new NerdgraphError(
-        `Expected user search users array but found ${typeof users}`
+        `Expected users items array but found ${typeof items}`
       )
     }
 
-    if (users.length === 0) {
+    if (items.length === 0) {
       return null
     }
 
-    if (users.length > 1) {
+    if (items.length > 1) {
       throw new NerdgraphError(
-        `Expected exactly one user but found ${users.length}`
+        `Expected exactly one user but found ${items.length}`
       )
     }
 
-    const user = users[0]
+    const user = items[0]
 
     if (!isUserSearchResult(user)) {
       throw new NerdgraphError(
@@ -100,7 +117,13 @@ class UsersClientImpl implements UsersClient {
       )
     }
 
-    return user.userId
+    if (authenticationDomainId !== user.authenticationDomainId) {
+      throw new NerdgraphError(
+        `Expected authentication domain ID ${authenticationDomainId} but found ${user.authenticationDomainId}`
+      )
+    }
+
+    return user.id
   }
 
   async getUserById(userId: number | string): Promise<UserEntity | null> {
@@ -168,8 +191,11 @@ class UsersClientImpl implements UsersClient {
     return user
   }
 
-  async getUserByEmail(email: string): Promise<UserEntity | null> {
-    const userId = await this.getUserIdByEmail(email)
+  async getUserByEmail(
+    authenticationDomainId: string,
+    email: string
+  ): Promise<UserEntity | null> {
+    const userId = await this.getUserIdByEmail(authenticationDomainId, email)
 
     if (userId === null) {
       return null

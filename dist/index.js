@@ -50438,6 +50438,7 @@ class NerdgraphClientImpl {
 
 function getInputs() {
     const orgId = coreExports.getInput('org-id', { required: true });
+    const authenticationDomainId = coreExports.getInput('authentication-domain-id');
     const apiKey = coreExports.getInput('api-key', { required: true });
     const region = coreExports.getInput('region');
     const filesAdded = coreExports.getInput('files-added');
@@ -50445,6 +50446,7 @@ function getInputs() {
     const filesDeleted = coreExports.getInput('files-deleted');
     return {
         orgId,
+        authenticationDomainId: authenticationDomainId || undefined,
         apiKey,
         region: toRegion(region),
         filesAdded: !filesAdded
@@ -50761,19 +50763,21 @@ class TeamsClientImpl {
         const currMembers = await this.getTeamMembers(teamEntity);
         const usersToAdd = [];
         const usersToRemove = currMembers.map((member) => member.guid);
-        for (const email of members) {
-            const user = await this.usersClient.getUserByEmail(email);
-            if (user === null) {
-                coreExports.warning(`User not found: ${email}`);
-                continue;
-            }
-            const { guid } = user;
-            const index = usersToRemove.indexOf(guid);
-            if (index === -1) {
-                usersToAdd.push(guid);
-            }
-            else {
-                usersToRemove.splice(index, 1);
+        for (const teamMembersInput of members) {
+            for (const email of teamMembersInput.members) {
+                const user = await this.usersClient.getUserByEmail(teamMembersInput.authenticationDomainId, email);
+                if (user === null) {
+                    coreExports.warning(`User not found: ${email}`);
+                    continue;
+                }
+                const { guid } = user;
+                const index = usersToRemove.indexOf(guid);
+                if (index === -1) {
+                    usersToAdd.push(guid);
+                }
+                else {
+                    usersToRemove.splice(index, 1);
+                }
             }
         }
         if (usersToAdd.length > 0) {
@@ -50921,7 +50925,9 @@ class TeamsClientImpl {
 }
 
 function isUserSearchResult(obj) {
-    return isObjectAsIndexableObject(obj) && isString(obj.userId);
+    return (isObjectAsIndexableObject(obj) &&
+        isString(obj.authenticationDomainId) &&
+        isString(obj.id));
 }
 function isUserEntity(obj) {
     return (isObjectAsIndexableObject(obj) && isString(obj.guid) && isString(obj.name));
@@ -50938,41 +50944,46 @@ class UsersClientImpl {
         this.apiKey = apiKey;
         this.region = region;
     }
-    async getUserIdByEmail(email) {
+    async getUserIdByEmail(authenticationDomainId, email) {
         const results = await this.client.query(this.apiKey, `
       {
-        actor {
-          users {
-            userSearch(query: {scope: {email: $email}}) {
-              users {
-                userId
-              }
+        customerAdministration {
+          users(filter: {authenticationDomainId: {eq: $authenticationDomainId}, email: {eq: $email}}) {
+            items {
+              authenticationDomainId
+              id
             }
           }
         }
       }
-      `, { email: ['String', email] }, false, null, this.region);
+      `, {
+            authenticationDomainId: ['ID', authenticationDomainId],
+            email: ['String', email]
+        }, false, null, this.region);
         if (results.length !== 1) {
             throw new NerdgraphError(`Expected exactly one result but found ${results.length}`);
         }
-        const users = findByPath(results[0], 'actor.users.userSearch.users');
-        if (users === null) {
+        const items = findByPath(results[0], 'customerAdministration.users.items');
+        if (items === null) {
             return null;
         }
-        if (!Array.isArray(users)) {
-            throw new NerdgraphError(`Expected user search users array but found ${typeof users}`);
+        if (!Array.isArray(items)) {
+            throw new NerdgraphError(`Expected users items array but found ${typeof items}`);
         }
-        if (users.length === 0) {
+        if (items.length === 0) {
             return null;
         }
-        if (users.length > 1) {
-            throw new NerdgraphError(`Expected exactly one user but found ${users.length}`);
+        if (items.length > 1) {
+            throw new NerdgraphError(`Expected exactly one user but found ${items.length}`);
         }
-        const user = users[0];
+        const user = items[0];
         if (!isUserSearchResult(user)) {
             throw new NerdgraphError(`Expected user search result but found incompatible result`);
         }
-        return user.userId;
+        if (authenticationDomainId !== user.authenticationDomainId) {
+            throw new NerdgraphError(`Expected authentication domain ID ${authenticationDomainId} but found ${user.authenticationDomainId}`);
+        }
+        return user.id;
     }
     async getUserById(userId) {
         const results = await this.client.query(this.apiKey, `
@@ -51011,8 +51022,8 @@ class UsersClientImpl {
         }
         return user;
     }
-    async getUserByEmail(email) {
-        const userId = await this.getUserIdByEmail(email);
+    async getUserByEmail(authenticationDomainId, email) {
+        const userId = await this.getUserIdByEmail(authenticationDomainId, email);
         if (userId === null) {
             return null;
         }
@@ -51020,6 +51031,22 @@ class UsersClientImpl {
     }
 }
 
+function isTeamMembersInput(value) {
+    if (!isObjectAsIndexableObject(value)) {
+        return false;
+    }
+    if (!isString(value.authenticationDomainId)) {
+        return false;
+    }
+    if (!isStringArray(value.members)) {
+        return false;
+    }
+    return true;
+}
+function isStringOrTeamMembersInputArray(value) {
+    return (Array.isArray(value) &&
+        value.every((val) => isString(val) || isTeamMembersInput(val)));
+}
 function newTeamDefinition() {
     return {
         description: '',
@@ -51030,13 +51057,45 @@ function newTeamDefinition() {
         tags: {}
     };
 }
-function unmarshalTeamDefinition(obj) {
+function stringOrTeamMembersInputArrayToTeamMembersInputArray(defaultAuthenticationDomainId, arr) {
+    let defaultTeamMembersInput = undefined;
+    return arr.reduce((acc, item) => {
+        if (typeof item !== 'string') {
+            // If item is not a string, it must be a TeamMembersInput so just
+            // concatenate the accumulator with the item.
+            return [...acc, item];
+        }
+        // Otherwise it's a string and we will assume it's an email address in the
+        // authentication domain with the specified default authentication domain
+        // ID. If no default authentication domain ID was specified, raise an
+        // error. Otherwise, if the TeamMembersInput for the default
+        // authentication domain has not been created, create it with the default
+        // authentication domain ID and the email address and concatenate the
+        // accumulator with it. If the TeamMembersInput for the default
+        // authentication domain has already been created and added to the
+        // accumulator, just push the email address on the members array and
+        // return the accumulator.
+        if (!defaultAuthenticationDomainId) {
+            throw new Error('A default authentication domain ID is required when members are specified without authentication domain IDs');
+        }
+        if (!defaultTeamMembersInput) {
+            defaultTeamMembersInput = {
+                authenticationDomainId: defaultAuthenticationDomainId,
+                members: [item]
+            };
+            return [...acc, defaultTeamMembersInput];
+        }
+        defaultTeamMembersInput.members.push(item);
+        return acc;
+    }, []);
+}
+function unmarshalTeamDefinition(authenticationDomainId, obj) {
     if (!isObjectAsIndexableObject(obj)) {
         throw new Error('Invalid team definition');
     }
     const team = newTeamDefinition();
-    if (isStringArray(obj.members)) {
-        team.members = obj.members;
+    if (isStringOrTeamMembersInputArray(obj.members)) {
+        team.members = stringOrTeamMembersInputArrayToTeamMembersInputArray(authenticationDomainId, obj.members);
     }
     if (isString(obj.description)) {
         team.description = obj.description;
@@ -51083,7 +51142,7 @@ class TeamsSyncActionImpl {
             const filePath = join(this.workspace, file);
             coreExports.debug(`loading added file: ${filePath}`);
             const data = JSON.parse(await readFile(filePath, { encoding: 'utf-8' }));
-            const teamDefinition = unmarshalTeamDefinition(data);
+            const teamDefinition = unmarshalTeamDefinition(this.inputs.authenticationDomainId, data);
             const teamName = basename$1(file, extname(file));
             coreExports.debug(`creating team: ${teamName}`);
             const team = await this.client.createTeam(teamName, teamDefinition.members, teamDefinition.description, teamDefinition.aliases, teamDefinition.tags, [...teamDefinition.contacts, ...teamDefinition.links]);
@@ -51101,7 +51160,7 @@ class TeamsSyncActionImpl {
             const filePath = join(this.workspace, file);
             coreExports.debug(`loading modified file: ${filePath}`);
             const data = JSON.parse(await readFile(filePath, { encoding: 'utf-8' }));
-            const teamDefinition = unmarshalTeamDefinition(data);
+            const teamDefinition = unmarshalTeamDefinition(this.inputs.authenticationDomainId, data);
             const teamName = basename$1(file, extname(file));
             coreExports.debug(`updating team: ${teamName}`);
             const team = await this.client.updateTeam(teamName, teamDefinition.members, teamDefinition.description, teamDefinition.aliases, teamDefinition.tags, [...teamDefinition.contacts, ...teamDefinition.links]);

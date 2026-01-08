@@ -6,6 +6,7 @@ import {
 import { UserEntity, UsersClient } from '../../src/nerdgraph/users.js'
 import {
   TeamEntity,
+  TeamMembersInput,
   TeamResource,
   TeamsClient,
   UpdateMembershipResult
@@ -85,56 +86,69 @@ class NerdgraphClientStub implements NerdgraphClient {
 }
 
 export function newUsersClient(): UsersClientStub {
-  return new UsersClientStub([], [], [])
-}
-
-export function newUsersClientWithError(): UsersClientStub {
-  return new UsersClientStub([], [], [], true)
+  return new UsersClientStub([], false, [], false, [], false)
 }
 
 export function newUsersClientWithId(userId: string): UsersClientStub {
-  return new UsersClientStub([userId], [], [])
+  return new UsersClientStub([userId], false, [], false, [], false)
 }
 
 export function newUsersClientWithUsersById(
   ...users: (UserEntity | null)[]
 ): UsersClientStub {
-  return new UsersClientStub([], users, [])
+  return new UsersClientStub([], false, users, false, [], false)
 }
 
 export function newUsersClientWithUsersByEmail(
   ...users: (UserEntity | null)[]
 ): UsersClientStub {
-  return new UsersClientStub([], [], users)
+  return new UsersClientStub([], false, [], false, users, false)
 }
 
 export function newUsersClientWithResponses(
   userIds: string[],
+  userIdByEmailError: boolean,
   usersById: (UserEntity | null)[],
-  usersByEmail: (UserEntity | null)[]
+  userByIdError: boolean,
+  usersByEmail: (UserEntity | null)[],
+  userByEmailError: boolean
 ): UsersClientStub {
-  return new UsersClientStub(userIds, usersById, usersByEmail)
+  return new UsersClientStub(
+    userIds,
+    userIdByEmailError,
+    usersById,
+    userByIdError,
+    usersByEmail,
+    userByEmailError
+  )
 }
 
 class UsersClientStub implements UsersClient {
   userIdByEmailCalls: number = 0
   userIds: string[]
+  userIdByEmailError: boolean
   userByIdCalls: number = 0
   usersById: (UserEntity | null)[]
+  userByIdError: boolean
   userByEmailCalls: number = 0
+  userByEmailInputs: { authenticationDomainId: string; email: string }[] = []
   usersByEmail: (UserEntity | null)[]
-  error: boolean
+  userByEmailError: boolean
 
   constructor(
     userIds: string[],
+    userIdByEmailError: boolean,
     usersById: (UserEntity | null)[],
+    userByIdError: boolean,
     usersByEmail: (UserEntity | null)[],
-    error: boolean = false
+    userByEmailError: boolean
   ) {
     this.userIds = userIds
+    this.userIdByEmailError = userIdByEmailError
     this.usersById = usersById
+    this.userByIdError = userByIdError
     this.usersByEmail = usersByEmail
-    this.error = error
+    this.userByEmailError = userByEmailError
   }
 
   async getUserIdByEmail(): Promise<string | null> {
@@ -142,7 +156,7 @@ class UsersClientStub implements UsersClient {
 
     this.userIdByEmailCalls += 1
 
-    if (this.error) {
+    if (this.userIdByEmailError) {
       throw new NerdgraphError('Simulated error in getUserIdByEmail')
     }
 
@@ -154,19 +168,23 @@ class UsersClientStub implements UsersClient {
 
     this.userByIdCalls += 1
 
-    if (this.error) {
+    if (this.userByIdError) {
       throw new NerdgraphError('Simulated error in getUserById')
     }
 
     return this.usersById[index]
   }
 
-  async getUserByEmail(): Promise<UserEntity | null> {
+  async getUserByEmail(
+    authenticationDomainId: string,
+    email: string
+  ): Promise<UserEntity | null> {
     const index = this.userByEmailCalls
 
     this.userByEmailCalls += 1
+    this.userByEmailInputs.push({ authenticationDomainId, email })
 
-    if (this.error) {
+    if (this.userByEmailError) {
       throw new NerdgraphError('Simulated error in getUserByEmail')
     }
 
@@ -184,7 +202,7 @@ export function newTeamsClientWithError(): TeamsClientStub {
 
 type CreateTeamInput = {
   name: string
-  members: string[]
+  members: TeamMembersInput[]
   description: string
   aliases: string[]
   tags: Record<string, string[]>
@@ -229,7 +247,7 @@ class TeamsClientStub implements TeamsClient {
 
   async createTeam(
     name: string,
-    members: string[],
+    members: TeamMembersInput[],
     description: string,
     aliases: string[],
     tags: Record<string, string[]>,
@@ -263,7 +281,7 @@ class TeamsClientStub implements TeamsClient {
 
   async updateTeam(
     name: string,
-    members: string[],
+    members: TeamMembersInput[],
     description: string,
     aliases: string[],
     tags: Record<string, string[]>,
