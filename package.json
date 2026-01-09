@@ -13,6 +13,7 @@
     "local-action": "npx @github/local-action . src/main.ts .env",
     "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
+    "integration": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest --silent=false --testPathIgnorePatterns='[]' --coverage=false ./__tests__/integration.test.ts",
     "all": "npm run format:check && npm run lint && npm run test && npm run coverage && npm run package"
   },
   "repository": {
@@ -37,6 +38,7 @@
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
+    "dotenv": "^17.2.3",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
