@@ -179,6 +179,11 @@ Then, run the integration tests using the following command:
 npm run integration
 ```
 
+**NOTE:** The New Relic user associated with the specified User API key _must_
+have access to create, delete, and modify teams. Refer to the documentation on
+[teams permissions](https://docs.newrelic.com/docs/service-architecture-intelligence/teams/manage-teams/#teams-permissions)
+for more details.
+
 ### Packaging
 
 The [`rollup`](https://rollupjs.org/introduction/) module bundler is used to

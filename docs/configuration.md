@@ -15,3 +15,8 @@ The `nr-labs-team-sync-action` supports the following input properties.
 | files-deleted            | string | FALSE    | `''`    | Comma-separated list of repository relative file paths the have been deleted                                   |
 
 <!-- markdownlint-enable -->
+
+**NOTE:** The New Relic user associated with the specified User API key _must_
+have access to create, delete, and modify teams. Refer to the documentation on
+[teams permissions](https://docs.newrelic.com/docs/service-architecture-intelligence/teams/manage-teams/#teams-permissions)
+for more details.
