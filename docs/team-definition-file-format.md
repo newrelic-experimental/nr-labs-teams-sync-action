@@ -67,15 +67,47 @@ of strings.
 
 Team members are managed using the `members` property of the team definition.
 The `members` property is optional. When specified, the value must be an array
-of email addresses corresponding to valid New Relic user accounts.
+that specifies the New Relic user accounts that are members of the team using a
+_combination_ of one or more of the following mechanisms.
 
-**NOTE:** Currently, there is no way to specify the
-[authentication domain](https://docs.newrelic.com/docs/accounts/accounts-billing/new-relic-one-user-management/authentication-domains-saml-sso-scim-more/)
-for a given email address. If a given email address exists in more than one
-authentication domain within an
-[organization](https://docs.newrelic.com/docs/accounts/accounts-billing/account-structure/new-relic-account-structure/),
-the Teams Sync Action will fail when creating or updating the membership of the
-team referencing the given email address.
+- String literal - Array elements specified as strings will be interpreted as
+  email addresses of New Relic user accounts within the New Relic
+  [authentication domain](https://docs.newrelic.com/docs/accounts/accounts-billing/new-relic-one-user-management/authentication-domains-saml-sso-scim-more/)
+  specified in the `authentication-domain-id`
+  [configuration input](./configuration.md) property. In this case, a value for
+  the `authentication-domain-id` configuration input property _must_ be
+  specified. If a value for the `authentication-domain-id` configuration input
+  property is not specified, the action will fail.
+
+- Team members structure - Team members structures can be used to designate New
+  Relic user accounts in a specific New Relic authentication domain. Team
+  members structures are specified using the following format.
+
+  ```json
+  {
+    "authenticationDomainId": "[NEW_RELIC_AUTHENTICATION_DOMAIN_ID]",
+    "members": [
+      "fake-user-1@fake-domain-123.com",
+      "fake-user-2@fake-domain-123.com"
+    ]
+  }
+  ```
+
+  The `authenticationDomainId` and `members` properties are both required. The
+  value of the `authenticationDomainId` property _must_ be the ID of a New Relic
+  authentication domain. The authentication domain ID for an authentication
+  domain can be found in the "ID" column of the table shown on the
+  "Authentication Domains" tab of the
+  [administration UI](https://docs.newrelic.com/docs/accounts/accounts-billing/general-account-settings/intro-account-settings/).
+
+  The value of the `members` property _must_ be an array of strings, where each
+  string specifies the email address of a New Relic user account within the New
+  Relic authentication domain specified by the `authenticationDomainId`
+  property.
+
+  **NOTE:** If _all_ array elements specified in the `members` property of the
+  team definition are team members structures, the `authentication-domain-id`
+  [configuration input](./configuration.md) property is not required.
 
 ## Team Contacts
 

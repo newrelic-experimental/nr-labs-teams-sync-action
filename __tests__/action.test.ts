@@ -19,6 +19,25 @@ function createTeamsSyncAction(
   const inputs = {
     orgId: 'orgId',
     apiKey: 'apiKey',
+    authenticationDomainId: 'fake-authentication-domain-id',
+    region: Region.US,
+    filesAdded,
+    filesModified,
+    filesDeleted
+  }
+
+  return newTeamsSyncAction(teamsClient, inputs)
+}
+
+function createTeamsSyncActionWithNoAuthenticationDomainId(
+  teamsClient: TeamsClient,
+  filesAdded: string[] = [],
+  filesModified: string[] = [],
+  filesDeleted: string[] = []
+): TeamsSyncAction {
+  const inputs = {
+    orgId: 'orgId',
+    apiKey: 'apiKey',
     region: Region.US,
     filesAdded,
     filesModified,
@@ -44,7 +63,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.createTeamCalls).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'engineering',
-        members: ['joe@example.com', 'alex@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com', 'alex@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'], beep: ['boop'] },
@@ -65,7 +89,16 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.updateTeamCalls).toBe(1)
       expect(teamsClient.teamsUpdated[0]).toEqual({
         name: 'gtm',
-        members: ['pat@example.com', 'skyler@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['pat@example.com']
+          },
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['skyler@example.com']
+          }
+        ],
         description: 'Go-to-Market team responsible for sales and marketing',
         aliases: ['gtm'],
         tags: { fizz: ['fazz'], bizz: ['bazz'] },
@@ -128,7 +161,7 @@ describe('TeamSyncAction', () => {
         await action.processFilesAdded(['__fixtures__/not-object.json'])
       }).rejects.toThrow(Error)
     })
-    it('should throw Error if GITHUB_WORKSPACE is set file not found', async () => {
+    it('should throw file not found Error if GITHUB_WORKSPACE is set to an invalid path', async () => {
       process.env.GITHUB_WORKSPACE = '/some/nonexistent/path'
       const teamsClient = newTeamsClient()
       const action = createTeamsSyncAction(teamsClient)
@@ -185,19 +218,195 @@ describe('TeamSyncAction', () => {
         ]
       })
     })
-    it('should create a team with no members when members is not a string array', async () => {
+    it('should create a team with no members when members is not a string or team members input array', async () => {
       const teamsClient = newTeamsClient()
       const action = createTeamsSyncAction(teamsClient)
 
       await action.processFilesAdded([
-        '__fixtures__/members-not-string-array.json'
+        '__fixtures__/members-not-string-or-team-members-input-array.json'
       ])
 
       expect(teamsClient.createTeamCalls).toBe(1)
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
-        name: 'members-not-string-array',
+        name: 'members-not-string-or-team-members-input-array',
         members: [],
+        description: 'Engineering team responsible for product development',
+        aliases: ['epd'],
+        tags: { foo: ['bar'] },
+        resources: [
+          {
+            type: 'GITHUB',
+            title: 'GitHub Repository',
+            content: 'https://github.com/example/repo'
+          }
+        ]
+      })
+    })
+    it('should create a team with no members when members is a team members input array and authenticationDomainId is not a string', async () => {
+      const teamsClient = newTeamsClient()
+      const action = createTeamsSyncAction(teamsClient)
+
+      await action.processFilesAdded([
+        '__fixtures__/members-team-members-input-array-authentication-domain-id-not-string.json'
+      ])
+
+      expect(teamsClient.createTeamCalls).toBe(1)
+      expect(teamsClient.teamsCreated.length).toBe(1)
+      expect(teamsClient.teamsCreated[0]).toEqual({
+        name: 'members-team-members-input-array-authentication-domain-id-not-string',
+        members: [],
+        description: 'Engineering team responsible for product development',
+        aliases: ['epd'],
+        tags: { foo: ['bar'] },
+        resources: [
+          {
+            type: 'GITHUB',
+            title: 'GitHub Repository',
+            content: 'https://github.com/example/repo'
+          }
+        ]
+      })
+    })
+    it('should create a team with no members when members is a team members input array and members is not an array', async () => {
+      const teamsClient = newTeamsClient()
+      const action = createTeamsSyncAction(teamsClient)
+
+      await action.processFilesAdded([
+        '__fixtures__/members-team-members-input-array-members-not-array.json'
+      ])
+
+      expect(teamsClient.createTeamCalls).toBe(1)
+      expect(teamsClient.teamsCreated.length).toBe(1)
+      expect(teamsClient.teamsCreated[0]).toEqual({
+        name: 'members-team-members-input-array-members-not-array',
+        members: [],
+        description: 'Engineering team responsible for product development',
+        aliases: ['epd'],
+        tags: { foo: ['bar'] },
+        resources: [
+          {
+            type: 'GITHUB',
+            title: 'GitHub Repository',
+            content: 'https://github.com/example/repo'
+          }
+        ]
+      })
+    })
+    it('should create a team with no members when members is a team members input array and members is not a string array', async () => {
+      const teamsClient = newTeamsClient()
+      const action = createTeamsSyncAction(teamsClient)
+
+      await action.processFilesAdded([
+        '__fixtures__/members-team-members-input-array-members-not-string-array.json'
+      ])
+
+      expect(teamsClient.createTeamCalls).toBe(1)
+      expect(teamsClient.teamsCreated.length).toBe(1)
+      expect(teamsClient.teamsCreated[0]).toEqual({
+        name: 'members-team-members-input-array-members-not-string-array',
+        members: [],
+        description: 'Engineering team responsible for product development',
+        aliases: ['epd'],
+        tags: { foo: ['bar'] },
+        resources: [
+          {
+            type: 'GITHUB',
+            title: 'GitHub Repository',
+            content: 'https://github.com/example/repo'
+          }
+        ]
+      })
+    })
+    it('should create a team with members using default authentication ID when members is a string array', async () => {
+      const teamsClient = newTeamsClient()
+      const action = createTeamsSyncAction(teamsClient)
+
+      await action.processFilesAdded(['__fixtures__/members-string-array.json'])
+
+      expect(teamsClient.createTeamCalls).toBe(1)
+      expect(teamsClient.teamsCreated.length).toBe(1)
+      expect(teamsClient.teamsCreated[0]).toEqual({
+        name: 'members-string-array',
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
+        description: 'Engineering team responsible for product development',
+        aliases: ['epd'],
+        tags: { foo: ['bar'] },
+        resources: [
+          {
+            type: 'GITHUB',
+            title: 'GitHub Repository',
+            content: 'https://github.com/example/repo'
+          }
+        ]
+      })
+    })
+    it('should throw Error when members is a string array and default authenticationDomainId is undefined', async () => {
+      const teamsClient = newTeamsClient()
+      const action =
+        createTeamsSyncActionWithNoAuthenticationDomainId(teamsClient)
+
+      await expect(async () => {
+        await action.processFilesAdded([
+          '__fixtures__/members-string-array.json'
+        ])
+      }).rejects.toThrow(Error)
+    })
+    it('should create a team with members when members is a team members input array', async () => {
+      const teamsClient = newTeamsClient()
+      const action = createTeamsSyncAction(teamsClient)
+
+      await action.processFilesAdded([
+        '__fixtures__/members-team-members-input-array.json'
+      ])
+      expect(teamsClient.createTeamCalls).toBe(1)
+      expect(teamsClient.teamsCreated.length).toBe(1)
+      expect(teamsClient.teamsCreated[0]).toEqual({
+        name: 'members-team-members-input-array',
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['jess@example.com']
+          }
+        ],
+        description: 'Engineering team responsible for product development',
+        aliases: ['epd'],
+        tags: { foo: ['bar'] },
+        resources: [
+          {
+            type: 'GITHUB',
+            title: 'GitHub Repository',
+            content: 'https://github.com/example/repo'
+          }
+        ]
+      })
+    })
+    it('should create a team with members when members is a string or team members input array', async () => {
+      const teamsClient = newTeamsClient()
+      const action = createTeamsSyncAction(teamsClient)
+
+      await action.processFilesAdded([
+        '__fixtures__/members-string-or-team-members-input-array.json'
+      ])
+      expect(teamsClient.createTeamCalls).toBe(1)
+      expect(teamsClient.teamsCreated.length).toBe(1)
+      expect(teamsClient.teamsCreated[0]).toEqual({
+        name: 'members-string-or-team-members-input-array',
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          },
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['jess@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -220,7 +429,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'no-description',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: '',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -245,7 +459,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'description-not-string',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: '',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -268,7 +487,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'description-null',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: '',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -291,7 +515,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'no-aliases',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: [],
         tags: { foo: ['bar'] },
@@ -313,7 +542,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'aliases-not-array',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: [],
         tags: { foo: ['bar'] },
@@ -338,7 +572,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'aliases-not-string-array',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: [],
         tags: { foo: ['bar'] },
@@ -361,7 +600,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'no-contacts',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -383,7 +627,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'contacts-not-array',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -414,7 +663,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'no-links',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -436,7 +690,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'links-not-array',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -466,7 +725,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'no-resources',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'] },
@@ -482,7 +746,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'no-tags',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: {},
@@ -504,7 +773,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'tags-not-object',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: {},
@@ -526,7 +800,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'tags-value-not-array',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: {},
@@ -550,7 +829,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(1)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'tags-value-not-string-array',
-        members: ['joe@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: {},
@@ -576,7 +860,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsCreated.length).toBe(2)
       expect(teamsClient.teamsCreated[0]).toEqual({
         name: 'engineering',
-        members: ['joe@example.com', 'alex@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com', 'alex@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'], beep: ['boop'] },
@@ -595,7 +884,16 @@ describe('TeamSyncAction', () => {
       })
       expect(teamsClient.teamsCreated[1]).toEqual({
         name: 'gtm',
-        members: ['pat@example.com', 'skyler@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['pat@example.com']
+          },
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['skyler@example.com']
+          }
+        ],
         description: 'Go-to-Market team responsible for sales and marketing',
         aliases: ['gtm'],
         tags: { fizz: ['fazz'], bizz: ['bazz'] },
@@ -678,7 +976,12 @@ describe('TeamSyncAction', () => {
       expect(teamsClient.teamsUpdated.length).toBe(2)
       expect(teamsClient.teamsUpdated[0]).toEqual({
         name: 'engineering',
-        members: ['joe@example.com', 'alex@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['joe@example.com', 'alex@example.com']
+          }
+        ],
         description: 'Engineering team responsible for product development',
         aliases: ['epd'],
         tags: { foo: ['bar'], beep: ['boop'] },
@@ -697,7 +1000,16 @@ describe('TeamSyncAction', () => {
       })
       expect(teamsClient.teamsUpdated[1]).toEqual({
         name: 'gtm',
-        members: ['pat@example.com', 'skyler@example.com'],
+        members: [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['pat@example.com']
+          },
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['skyler@example.com']
+          }
+        ],
         description: 'Go-to-Market team responsible for sales and marketing',
         aliases: ['gtm'],
         tags: { fizz: ['fazz'], bizz: ['bazz'] },

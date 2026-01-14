@@ -12,7 +12,6 @@ import {
   newNerdgraphClientWithOneResponse,
   newNerdgraphClientWithResponses,
   newUsersClient,
-  newUsersClientWithError,
   newUsersClientWithResponses,
   newUsersClientWithUsersById
 } from './stubs.js'
@@ -954,7 +953,14 @@ describe('TeamsClient', () => {
           }
         }
       })
-      const usersClient = newUsersClientWithError()
+      const usersClient = newUsersClientWithResponses(
+        [],
+        false,
+        [],
+        true,
+        [],
+        false
+      )
       const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
@@ -1130,7 +1136,8 @@ describe('TeamsClient', () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
         actor: {
           entityManagement: {
-            // Trigger getTeamMembers error by returning invalid collection items
+            // Trigger getTeamMembers error by returning invalid collection
+            // items
             collectionElements: { items: '42' }
           }
         }
@@ -1139,23 +1146,46 @@ describe('TeamsClient', () => {
       const teamEntity = createTeamEntity()
 
       await expectNerdgraphError(() =>
-        client.updateMembership(teamEntity, ['fake-user@newrelic.com'])
+        client.updateMembership(teamEntity, [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['fake-user@newrelic.com']
+          }
+        ])
       )
     })
     it('should throw NerdgraphError if getUserByEmail does', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
         actor: {
           entityManagement: {
-            // Trigger getTeamMembers error by returning invalid collection items
-            collectionElements: { items: '42' }
+            collectionElements: { items: [{ userId: 42 }] }
           }
         }
       })
-      const client = createTeamsClient(nerdgraphClient)
+      const usersClient = newUsersClientWithResponses(
+        [],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          }
+        ],
+        false,
+        [],
+        // Trigger getUserByEmail error
+        true
+      )
+      const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
       await expectNerdgraphError(() =>
-        client.updateMembership(teamEntity, ['fake-user@newrelic.com'])
+        client.updateMembership(teamEntity, [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id',
+            members: ['fake-user@newrelic.com']
+          }
+        ])
       )
     })
     it('should ignore emails that do not map to a user', async () => {
@@ -1168,6 +1198,7 @@ describe('TeamsClient', () => {
       })
       const usersClient = newUsersClientWithResponses(
         [],
+        false,
         [
           {
             guid: '42',
@@ -1178,6 +1209,7 @@ describe('TeamsClient', () => {
             name: 'User 43'
           }
         ],
+        false,
         [
           {
             guid: '42',
@@ -1188,17 +1220,38 @@ describe('TeamsClient', () => {
             name: 'User 43'
           },
           null
-        ]
+        ],
+        false
       )
       const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
       const result = await client.updateMembership(teamEntity, [
-        'fake-user-1@newrelic.com',
-        'fake-user-2@newrelic.com',
-        'fake-user-3@newrelic.com'
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          members: [
+            'fake-user-1@newrelic.com',
+            'fake-user-2@newrelic.com',
+            'fake-user-3@newrelic.com'
+          ]
+        }
       ])
       expect(result).toEqual({ usersAdded: [], usersRemoved: [] })
+      expect(usersClient.userByEmailCalls).toBe(3)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-2@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-3@newrelic.com'
+        }
+      ])
     })
     it('should return expected update membership result when users added', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
@@ -1219,12 +1272,14 @@ describe('TeamsClient', () => {
       )
       const usersClient = newUsersClientWithResponses(
         [],
+        false,
         [
           {
             guid: '42',
             name: 'User 42'
           }
         ],
+        false,
         [
           {
             guid: '42',
@@ -1234,16 +1289,30 @@ describe('TeamsClient', () => {
             guid: '43',
             name: 'User 43'
           }
-        ]
+        ],
+        false
       )
       const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
       const result = await client.updateMembership(teamEntity, [
-        'fake-user-1@newrelic.com',
-        'fake-user-2@newrelic.com'
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          members: ['fake-user-1@newrelic.com', 'fake-user-2@newrelic.com']
+        }
       ])
       expect(result).toEqual({ usersAdded: ['43'], usersRemoved: [] })
+      expect(usersClient.userByEmailCalls).toBe(2)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-2@newrelic.com'
+        }
+      ])
     })
     it('should return expected update membership result when users removed', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
@@ -1264,6 +1333,7 @@ describe('TeamsClient', () => {
       )
       const usersClient = newUsersClientWithResponses(
         [],
+        false,
         [
           {
             guid: '42',
@@ -1274,20 +1344,32 @@ describe('TeamsClient', () => {
             name: 'User 43'
           }
         ],
+        false,
         [
           {
             guid: '42',
             name: 'User 42'
           }
-        ]
+        ],
+        false
       )
       const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
       const result = await client.updateMembership(teamEntity, [
-        'fake-user-1@newrelic.com'
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          members: ['fake-user-1@newrelic.com']
+        }
       ])
       expect(result).toEqual({ usersAdded: [], usersRemoved: ['43'] })
+      expect(usersClient.userByEmailCalls).toBe(1)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-1@newrelic.com'
+        }
+      ])
     })
     it('should return expected update membership result when users are the same', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
@@ -1299,6 +1381,7 @@ describe('TeamsClient', () => {
       })
       const usersClient = newUsersClientWithResponses(
         [],
+        false,
         [
           {
             guid: '42',
@@ -1309,6 +1392,7 @@ describe('TeamsClient', () => {
             name: 'User 43'
           }
         ],
+        false,
         [
           {
             guid: '42',
@@ -1318,16 +1402,30 @@ describe('TeamsClient', () => {
             guid: '43',
             name: 'User 43'
           }
-        ]
+        ],
+        false
       )
       const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
       const result = await client.updateMembership(teamEntity, [
-        'fake-user-1@newrelic.com',
-        'fake-user-2@newrelic.com'
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          members: ['fake-user-1@newrelic.com', 'fake-user-2@newrelic.com']
+        }
       ])
       expect(result).toEqual({ usersAdded: [], usersRemoved: [] })
+      expect(usersClient.userByEmailCalls).toBe(2)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-2@newrelic.com'
+        }
+      ])
     })
     it('should return expected update membership result when users are added, removed, and kept', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
@@ -1355,6 +1453,7 @@ describe('TeamsClient', () => {
       )
       const usersClient = newUsersClientWithResponses(
         [],
+        false,
         [
           {
             guid: '42',
@@ -1365,6 +1464,7 @@ describe('TeamsClient', () => {
             name: 'User 43'
           }
         ],
+        false,
         [
           {
             guid: '42',
@@ -1374,16 +1474,106 @@ describe('TeamsClient', () => {
             guid: '44',
             name: 'User 44'
           }
-        ]
+        ],
+        false
       )
       const client = createTeamsClient(nerdgraphClient, usersClient)
       const teamEntity = createTeamEntity()
 
       const result = await client.updateMembership(teamEntity, [
-        'fake-user-1@newrelic.com',
-        'fake-user-3@newrelic.com'
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          members: ['fake-user-1@newrelic.com', 'fake-user-3@newrelic.com']
+        }
       ])
       expect(result).toEqual({ usersAdded: ['44'], usersRemoved: ['43'] })
+      expect(usersClient.userByEmailCalls).toBe(2)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id',
+          email: 'fake-user-3@newrelic.com'
+        }
+      ])
+    })
+    it('should return expected update membership result with users in multiple authentication domains', async () => {
+      const nerdgraphClient = newNerdgraphClientWithResponses(
+        [
+          {
+            actor: {
+              entityManagement: {
+                collectionElements: {
+                  items: [{ userId: 42 }, { userId: 43 }]
+                }
+              }
+            }
+          }
+        ],
+        [
+          {
+            entityManagementAddCollectionMembers: ['44']
+          }
+        ],
+        [
+          {
+            entityManagementRemoveCollectionMembers: ['43']
+          }
+        ]
+      )
+      const usersClient = newUsersClientWithResponses(
+        [],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          },
+          {
+            guid: '43',
+            name: 'User 43'
+          }
+        ],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          },
+          {
+            guid: '44',
+            name: 'User 44'
+          }
+        ],
+        false
+      )
+      const client = createTeamsClient(nerdgraphClient, usersClient)
+      const teamEntity = createTeamEntity()
+
+      const result = await client.updateMembership(teamEntity, [
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-1',
+          members: ['fake-user-1@newrelic.com']
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-2',
+          members: ['fake-user-3@newrelic.com']
+        }
+      ])
+      expect(result).toEqual({ usersAdded: ['44'], usersRemoved: ['43'] })
+      expect(usersClient.userByEmailCalls).toBe(2)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-1',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-2',
+          email: 'fake-user-3@newrelic.com'
+        }
+      ])
     })
   })
   describe('createTeam', () => {
@@ -1475,7 +1665,8 @@ describe('TeamsClient', () => {
             actor: {
               entityManagement: {
                 entitySearch: {
-                  // Invalid entities value to trigger error
+                  // Trigger getTeamByName error by returning invalid entities
+                  // value
                   entities: '42'
                 }
               }
@@ -1614,7 +1805,8 @@ describe('TeamsClient', () => {
           {
             actor: {
               entityManagement: {
-                // Invalid items to trigger error
+                // Trigger updateMembership error by triggering getTeamMembers
+                // error by returning invalid collection items
                 collectionElements: { items: '42' }
               }
             }
@@ -1626,7 +1818,12 @@ describe('TeamsClient', () => {
       await expectNerdgraphError(() =>
         client.createTeam(
           'Fake Team',
-          [],
+          [
+            {
+              authenticationDomainId: 'fake-authentication-domain-id',
+              members: ['fake-user-1@newrelic.com', 'fake-user-2@newrelic.com']
+            }
+          ],
           'A fake team for testing purposes',
           [],
           {},
@@ -1634,7 +1831,7 @@ describe('TeamsClient', () => {
         )
       )
     })
-    it('should return created team when successful', async () => {
+    it('should call updateMembership() and return created team when successful', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
         [
           {
@@ -1670,17 +1867,52 @@ describe('TeamsClient', () => {
           {
             actor: {
               entityManagement: {
-                collectionElements: { items: [] }
+                collectionElements: { items: [{ userId: 42 }, { userId: 43 }] }
               }
             }
           }
         ]
       )
-      const client = createTeamsClient(nerdgraphClient)
+      const usersClient = newUsersClientWithResponses(
+        [],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          },
+          {
+            guid: '43',
+            name: 'User 43'
+          }
+        ],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          },
+          {
+            guid: '43',
+            name: 'User 43'
+          }
+        ],
+        false
+      )
+      const client = createTeamsClient(nerdgraphClient, usersClient)
 
       const teamEntity = await client.createTeam(
         'Fake Team',
-        [],
+        [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-1',
+            members: ['fake-user-1@newrelic.com']
+          },
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['fake-user-2@newrelic.com']
+          }
+        ],
         'A fake team for testing purposes',
         [],
         {
@@ -1688,6 +1920,7 @@ describe('TeamsClient', () => {
         },
         []
       )
+
       expect(teamEntity).toEqual({
         id: '42',
         name: 'Fake Team',
@@ -1697,6 +1930,25 @@ describe('TeamsClient', () => {
         membership: { id: '42' },
         tags: [{ key: 'foo', values: ['bar'] }]
       })
+
+      // Verify updateMembership was called by verifying that it called
+      // getUserByEmail with the correct authentication domain and email address
+      // for each member specified in the team members input array on the
+      // createTeam call. This may not be the best way to verify
+      // updateMembership was called but otherwise we would have to use partial
+      // mocking or some other way to replace the updateMembership function with
+      // a fake implementation.
+      expect(usersClient.userByEmailCalls).toBe(2)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-1',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-2',
+          email: 'fake-user-2@newrelic.com'
+        }
+      ])
     })
   })
   describe('updateTeam', () => {
@@ -1705,7 +1957,7 @@ describe('TeamsClient', () => {
         actor: {
           entityManagement: {
             entitySearch: {
-              // Invalid entities value to trigger error
+              // Trigger getTeamByName error by returning invalid entities value
               entities: '42'
             }
           }
@@ -1883,7 +2135,8 @@ describe('TeamsClient', () => {
           {
             entityManagementUpdateTeam: {
               entity: {
-                // Invalid team entity id to trigger unmarshal error
+                // Trigger unmarshalTeamEntity error by returning an invalid
+                // team entity id
                 id: '',
                 name: 'Fake Team',
                 description: 'A fake team for testing purposes',
@@ -1951,7 +2204,8 @@ describe('TeamsClient', () => {
           {
             actor: {
               entityManagement: {
-                // Invalid items to trigger error
+                // Trigger updateMembership error by triggering getTeamMembers
+                // error by returning invalid collection items
                 collectionElements: { items: '42' }
               }
             }
@@ -1963,7 +2217,12 @@ describe('TeamsClient', () => {
       await expectNerdgraphError(() =>
         client.updateTeam(
           'Fake Team',
-          [],
+          [
+            {
+              authenticationDomainId: 'fake-authentication-domain-id',
+              members: ['fake-user-1@newrelic.com', 'fake-user-2@newrelic.com']
+            }
+          ],
           'A fake team for testing purposes',
           [],
           {},
@@ -1971,7 +2230,7 @@ describe('TeamsClient', () => {
         )
       )
     })
-    it('should return updated team when successful', async () => {
+    it('should call updateMembership() and return updated team when successful', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
         [
           {
@@ -2013,17 +2272,52 @@ describe('TeamsClient', () => {
           {
             actor: {
               entityManagement: {
-                collectionElements: { items: [] }
+                collectionElements: { items: [{ userId: 42 }, { userId: 43 }] }
               }
             }
           }
         ]
       )
-      const client = createTeamsClient(nerdgraphClient)
+      const usersClient = newUsersClientWithResponses(
+        [],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          },
+          {
+            guid: '43',
+            name: 'User 43'
+          }
+        ],
+        false,
+        [
+          {
+            guid: '42',
+            name: 'User 42'
+          },
+          {
+            guid: '43',
+            name: 'User 43'
+          }
+        ],
+        false
+      )
+      const client = createTeamsClient(nerdgraphClient, usersClient)
 
       const teamEntity = await client.updateTeam(
         'Fake Team',
-        [],
+        [
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-1',
+            members: ['fake-user-1@newrelic.com']
+          },
+          {
+            authenticationDomainId: 'fake-authentication-domain-id-2',
+            members: ['fake-user-2@newrelic.com']
+          }
+        ],
         'Another fake team for testing purposes',
         [],
         {
@@ -2031,6 +2325,7 @@ describe('TeamsClient', () => {
         },
         []
       )
+
       expect(teamEntity).toEqual({
         id: '42',
         name: 'Fake Team',
@@ -2040,6 +2335,25 @@ describe('TeamsClient', () => {
         membership: { id: '42' },
         tags: [{ key: 'foo', values: ['bar'] }]
       })
+
+      // Verify updateMembership was called by verifying that it called
+      // getUserByEmail with the correct authentication domain and email address
+      // for each member specified in the team members input array on the
+      // updateTeam call. This may not be the best way to verify
+      // updateMembership was called but otherwise we would have to use partial
+      // mocking or some other way to replace the updateMembership function with
+      // a fake implementation.
+      expect(usersClient.userByEmailCalls).toBe(2)
+      expect(usersClient.userByEmailInputs).toEqual([
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-1',
+          email: 'fake-user-1@newrelic.com'
+        },
+        {
+          authenticationDomainId: 'fake-authentication-domain-id-2',
+          email: 'fake-user-2@newrelic.com'
+        }
+      ])
     })
   })
   describe('removeTeam', () => {

@@ -47,6 +47,29 @@ describe('getInputs', () => {
     const result = getInputs()
     expect(result.apiKey).toBe('fake-api-key')
   })
+  it('should set authenticationDomainId to result of getInput("authentication-domain-id") when authenticationDomainId is defined', () => {
+    ;(
+      mockedCore.getInput as jest.MockedFunction<typeof mockedCore.getInput>
+    ).mockImplementation((name: string) => {
+      if (name === 'authentication-domain-id') {
+        return 'fake-authentication-domain-id'
+      }
+      return ''
+    })
+
+    const result = getInputs()
+    expect(result.authenticationDomainId).toBe('fake-authentication-domain-id')
+  })
+  it('should not set authenticationDomainId when getInput("authentication-domain-id") is empty', () => {
+    ;(
+      mockedCore.getInput as jest.MockedFunction<typeof mockedCore.getInput>
+    ).mockImplementation(() => {
+      return ''
+    })
+
+    const result = getInputs()
+    expect(result.authenticationDomainId).toBeUndefined()
+  })
   it('should set region to toRegion(getInput("region"))', () => {
     ;(
       mockedCore.getInput as jest.MockedFunction<typeof mockedCore.getInput>

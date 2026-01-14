@@ -1,0 +1,22 @@
+{
+  "description": "Engineering team responsible for product development",
+  "aliases": ["epd"],
+  "members": [
+    "joe@example.com",
+    {
+      "authenticationDomainId": "fake-authentication-domain-id",
+      "members": ["jess@example.com"]
+    },
+    42
+  ],
+  "links": [
+    {
+      "type": "GITHUB",
+      "title": "GitHub Repository",
+      "content": "https://github.com/example/repo"
+    }
+  ],
+  "tags": {
+    "foo": ["bar"]
+  }
+}

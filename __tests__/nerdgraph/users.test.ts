@@ -21,20 +21,26 @@ describe('UsersClient', () => {
     it('should throw NerdgraphError when number of GraphQL responses is not one', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses([
         {
-          actor: {
+          customerAdministration: {
             users: {
-              userSearch: {
-                users: [{ userId: '42' }]
-              }
+              items: [
+                {
+                  authenticationDomainId: 'fake-authentication-domain-id',
+                  id: '42'
+                }
+              ]
             }
           }
         },
         {
-          actor: {
+          customerAdministration: {
             users: {
-              userSearch: {
-                users: [{ userId: '43' }]
-              }
+              items: [
+                {
+                  authenticationDomainId: 'fake-authentication-domain-id',
+                  id: '43'
+                }
+              ]
             }
           }
         }
@@ -42,132 +48,218 @@ describe('UsersClient', () => {
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserIdByEmail('fake-user@newrelic.com')
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
       )
     })
-    it('should return null when users element is null', async () => {
+    it('should return null when items element is null', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: null
-            }
+            items: null
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
-      const user = await client.getUserIdByEmail('fake-user@newrelic.com')
+      const user = await client.getUserIdByEmail(
+        'fake-authentication-domain-id',
+        'fake-user@newrelic.com'
+      )
       expect(user).toBeNull()
     })
-    it('should throw NerdgraphError when users element is not an array', async () => {
+    it('should throw NerdgraphError when items element is not an array', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: 42
-            }
+            items: 42
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserIdByEmail('fake-user@newrelic.com')
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
       )
     })
     it('should return null when no user is found', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: []
-            }
+            items: []
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
-      const user = await client.getUserIdByEmail('fake-user@newrelic.com')
+      const user = await client.getUserIdByEmail(
+        'fake-authentication-domain-id',
+        'fake-user@newrelic.com'
+      )
       expect(user).toBeNull()
     })
     it('should throw NerdgraphError when more than one user is returned', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: [{ userId: '42' }, { userId: '43' }]
-            }
+            items: [
+              {
+                authenticationDomainId: 'fake-authentication-domain-id',
+                id: '42'
+              },
+              {
+                authenticationDomainId: 'fake-authentication-domain-id',
+                id: '43'
+              }
+            ]
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserIdByEmail('fake-user@newrelic.com')
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
       )
     })
     it('should throw NerdgraphError when user search result is not an object', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: [42]
-            }
+            items: [42]
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserIdByEmail('fake-user@newrelic.com')
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
+      )
+    })
+    it('should throw NerdgraphError when authentication domain id is not defined', async () => {
+      const nerdgraphClient = newNerdgraphClientWithOneResponse({
+        customerAdministration: {
+          users: {
+            items: [{ id: '42' }]
+          }
+        }
+      })
+      const client = createUsersClient(nerdgraphClient)
+
+      await expectNerdgraphError(() =>
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
       )
     })
     it('should throw NerdgraphError when user id is not defined', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: [{}]
-            }
+            items: [{ authenticationDomainId: 'fake-authentication-domain-id' }]
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserIdByEmail('fake-user@newrelic.com')
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
+      )
+    })
+    it('should throw NerdgraphError when authentication domain id is not a string', async () => {
+      const nerdgraphClient = newNerdgraphClientWithOneResponse({
+        customerAdministration: {
+          users: {
+            items: [{ authenticationDomainId: 50, id: '42' }]
+          }
+        }
+      })
+      const client = createUsersClient(nerdgraphClient)
+
+      await expectNerdgraphError(() =>
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
       )
     })
     it('should throw NerdgraphError when user id is not a string', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: [{ userId: 42 }]
-            }
+            items: [
+              {
+                authenticationDomainId: 'fake-authentication-domain-id',
+                id: 42
+              }
+            ]
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserIdByEmail('fake-user@newrelic.com')
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
       )
     })
-    it('should return user id when user is found', async () => {
+    it('should throw NerdgraphError when specified authentication domain id does not match result authentication domain id', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: [{ userId: '42' }]
-            }
+            items: [
+              {
+                authenticationDomainId: 'fake-authentication-domain-id-2',
+                id: '42'
+              }
+            ]
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
-      const userId = await client.getUserIdByEmail('fake-user@newrelic.com')
+      await expectNerdgraphError(() =>
+        client.getUserIdByEmail(
+          'fake-authentication-domain-id',
+          'fake-user@newrelic.com'
+        )
+      )
+    })
+    it('should return user id when user is found', async () => {
+      const nerdgraphClient = newNerdgraphClientWithOneResponse({
+        customerAdministration: {
+          users: {
+            items: [
+              {
+                authenticationDomainId: 'fake-authentication-domain-id',
+                id: '42'
+              }
+            ]
+          }
+        }
+      })
+      const client = createUsersClient(nerdgraphClient)
+
+      const userId = await client.getUserIdByEmail(
+        'fake-authentication-domain-id',
+        'fake-user@newrelic.com'
+      )
       expect(userId).toBe('42')
     })
   })
@@ -349,20 +441,26 @@ describe('UsersClient', () => {
       const nerdgraphClient = newNerdgraphClientWithResponses([
         // Trigger error in getUserIdByEmail by returning multiple responses
         {
-          actor: {
+          customerAdministration: {
             users: {
-              userSearch: {
-                users: [{ userId: '42' }]
-              }
+              items: [
+                {
+                  authenticationDomainId: 'fake-authentication-domain-id',
+                  id: '42'
+                }
+              ]
             }
           }
         },
         {
-          actor: {
+          customerAdministration: {
             users: {
-              userSearch: {
-                users: [{ userId: '43' }]
-              }
+              items: [
+                {
+                  authenticationDomainId: 'fake-authentication-domain-id',
+                  id: '43'
+                }
+              ]
             }
           }
         }
@@ -370,38 +468,46 @@ describe('UsersClient', () => {
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserByEmail('user@example.com')
+        client.getUserByEmail(
+          'fake-authentication-domain-id',
+          'user@example.com'
+        )
       )
     })
     it('should return null if no user ID is found', async () => {
       const nerdgraphClient = newNerdgraphClientWithOneResponse({
-        actor: {
+        customerAdministration: {
           users: {
-            userSearch: {
-              users: []
-            }
+            items: []
           }
         }
       })
       const client = createUsersClient(nerdgraphClient)
 
-      const user = await client.getUserByEmail('fake-user@newrelic.com')
+      const user = await client.getUserByEmail(
+        'fake-authentication-domain-id',
+        'fake-user@newrelic.com'
+      )
       expect(user).toBeNull()
     })
     it('should throw NerdgraphError if getUserById fails', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
         [
           {
-            actor: {
+            customerAdministration: {
               users: {
-                userSearch: {
-                  users: [{ userId: '42' }]
-                }
+                items: [
+                  {
+                    authenticationDomainId: 'fake-authentication-domain-id',
+                    id: '42'
+                  }
+                ]
               }
             }
           }
         ],
         [
+          // Trigger error in getUserById by returning multiple responses
           {
             actor: {
               entitySearch: {
@@ -425,18 +531,24 @@ describe('UsersClient', () => {
       const client = createUsersClient(nerdgraphClient)
 
       await expectNerdgraphError(() =>
-        client.getUserByEmail('user@example.com')
+        client.getUserByEmail(
+          'fake-authentication-domain-id',
+          'user@example.com'
+        )
       )
     })
     it('should return user when user is found by email', async () => {
       const nerdgraphClient = newNerdgraphClientWithResponses(
         [
           {
-            actor: {
+            customerAdministration: {
               users: {
-                userSearch: {
-                  users: [{ userId: '42' }]
-                }
+                items: [
+                  {
+                    authenticationDomainId: 'fake-authentication-domain-id',
+                    id: '42'
+                  }
+                ]
               }
             }
           }
@@ -455,7 +567,10 @@ describe('UsersClient', () => {
       )
       const client = createUsersClient(nerdgraphClient)
 
-      const user = await client.getUserByEmail('fake-user@newrelic.com')
+      const user = await client.getUserByEmail(
+        'fake-authentication-domain-id',
+        'fake-user@newrelic.com'
+      )
       expect(user).toEqual({ guid: '42', name: 'User 42' })
     })
   })

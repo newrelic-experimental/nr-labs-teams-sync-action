@@ -38,6 +38,8 @@ on a push to the `main` branch.
 1. Create a new workflow file called `sync-teams.yml` in your GitHub repository
    with the following contents:
 
+   <!-- markdownlint-disable MD013 -->
+
    ```yaml
    name: Synchronize New Relic Teams
 
@@ -65,12 +67,15 @@ on a push to the `main` branch.
            uses: newrelic-experimental/nr-labs-teams-sync-action@v1
            with:
              org-id: ${{ secrets.NEW_RELIC_ORG_ID }}
+             authentication-domain-id: ${{ secrets.NEW_RELIC_DEFAULT_AUTHENTICATION_DOMAIN_ID }}
              api-key: ${{ secrets.NEW_RELIC_API_KEY }}
              region: US
              files-added: ${{ steps.changed-files.outputs.added_files }}
              files-modified: ${{ steps.changed-files.outputs.modified_files }}
              files-deleted: ${{ steps.changed-files.outputs.deleted_files }}
    ```
+
+   <!-- markdownlint-enable MD013 -->
 
    **NOTE:** This action depends on the use of [tj-actions/changed-files](https://github.com/tj-actions/changed-files)
    to detect changes to any JSON files in the most recent commit.
@@ -81,20 +86,25 @@ on a push to the `main` branch.
 3. Define a new repository secret named `NEW_RELIC_ORG_ID` with your
    New Relic organization ID as the value.
 
-4. Define a new repository secret named `NEW_RELIC_API_KEY` with your New Relic
+4. Define a new repository secret named `NEW_RELIC_DEFAULT_AUTHENTICATION_DOMAIN_ID`
+   with a New Relic authentication domain ID to use as the default
+   authentication domain when looking up team member email addresses specified
+   in team definition files without an authentication domain ID.
+
+5. Define a new repository secret named `NEW_RELIC_API_KEY` with your New Relic
    User key as the value.
 
-5. Create a `teams` folder in your repository
+6. Create a `teams` folder in your repository
 
-6. Copy the file [`team-definition.json`](./examples/team-definition.json) to
+7. Copy the file [`team-definition.json`](./examples/team-definition.json) to
    your `teams` folder.
 
-7. Rename the file to the name for your new team. For example, naming the file
+8. Rename the file to the name for your new team. For example, naming the file
    `Engineering.json` will result in a new New Relic Team named `Engineering`.
 
-8. Edit the contents of the file with the details of your new team.
+9. Edit the contents of the file with the details of your new team.
 
-9. Commit the new team file to you repository and push your changes to GitHub.
+10. Commit the new team file to you repository and push your changes to GitHub.
 
 That's it! When the new team file is pushed to the `main` branch, the new
 workflow will automatically create the team in New Relic teams using the name of

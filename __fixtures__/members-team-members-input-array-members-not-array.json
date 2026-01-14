@@ -1,7 +1,12 @@
 {
   "description": "Engineering team responsible for product development",
   "aliases": ["epd"],
-  "members": ["joe@example.com", 42],
+  "members": [
+    {
+      "authenticationDomainId": "fake-authentication-domain-id",
+      "members": 42
+    }
+  ],
   "links": [
     {
       "type": "GITHUB",
