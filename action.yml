@@ -12,6 +12,9 @@ inputs:
   org-id:
     description: Your New Relic Organization ID
     required: true
+  authentication-domain-id:
+    description: Default authentication domain ID
+    required: false
   api-key:
     description: Your New Relic User key
     required: true
